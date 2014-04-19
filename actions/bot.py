@@ -59,6 +59,12 @@ class worker():
                 self.speak(channel, "Mommy")
             else:
                 self.speak(channel, "You're not my mommy!")
+
+
+        if command == '!tell':
+            self.tell(user, channel, to, arg)
+
+
         # Join command
         if command == '!join':
             self.joinChannel(arg)
@@ -68,6 +74,8 @@ class worker():
 
         if command == '!quit' and self.auth.owner(user):
             self.quit(target, 'Quitting as ordered!')
+
+        # external fxns
         if command == '!monolouge':
             mono = self.roster.monolougeReport(channel, user)
             self.speak(to, mono)
@@ -111,6 +119,16 @@ class worker():
         print('Speaking: '+ msg)
         self.queue(('notice', target, msg))
 
+    def tell(self, user, channel, send, msg):
+        '''
+        feature light for now, but should track down this user and tell
+        them publicly, for now it will address the user in the from channel
+        '''
+        who = msg.split(' ',1)[0]
+        msg = msg.split(' ',1)[1]
+        self.queue(('msg', send, who+": <"+user.split('!',1)[0] + \
+            "> wants me to tell you: \"" + msg + '"'))
+
 class channelPool:
     """Maintail a list of active channel, and hold settings for them as well."""
     def __init__(self):
@@ -134,6 +152,12 @@ class channelPool:
         pass
 
     def nickChange():
+        pass
+
+    def storeSetting(self):
+        pass
+
+    def getSetting(self):
         pass
 
 class userRoster:
@@ -171,4 +195,9 @@ class userRoster:
 
     def roster(self, user):
         '''Keeps the roster, does things when called, never returns'''
+        pass
+
+class logging:
+    """docstring for logging"""
+    def __init__(self):
         pass
