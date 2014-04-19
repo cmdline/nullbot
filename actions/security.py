@@ -36,6 +36,12 @@ class authentication():
     def dropOwner(self):
         pass
 
+    def printOwner(self):
+        if self.hasOwner:
+            return self.__masterOwner
+        else:
+            return "None"
+
     def owner(self, test=None):
         if not self.hasOwner:
             print('====================================================')

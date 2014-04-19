@@ -63,6 +63,12 @@ class worker():
 
         if command == '!tell':
             self.tell(user, channel, to, arg)
+        if command == '!introduce':
+            self.introduce(to, arg)
+
+
+        if command == '!set':
+            self.putSetting(to, arg)
 
 
         # Join command
@@ -129,6 +135,18 @@ class worker():
         self.queue(('msg', send, who+": <"+user.split('!',1)[0] + \
             "> wants me to tell you: \"" + msg + '"'))
 
+    def introduce(self, to, nick):
+        if nick == self.nick or nick == 'yourself':
+            self.speak(to, "Hello, I'm a python bot with a modular backend"+\
+                " I'm bound to user: " + self.auth.printOwner().split('!')[0] + " Who are you?")
+        else:
+            self.speak(to, self.roster.getSetting(nick, 'intro'))
+
+    def putSetting(self, to, arg):
+        tv, msg = arg.split(' ',1)
+        target, val = tv.split(':',1)
+        self.roster.storeSetting(target, val, msg)
+
 class channelPool:
     """Maintail a list of active channel, and hold settings for them as well."""
     def __init__(self):
@@ -165,7 +183,7 @@ class userRoster:
     def __init__(self):
         self.lastActive = {}
         self.roster     = {}
-        pass
+        self.settings   = {}
 
     def watch(self, user, channel, msg):
         '''Watch members do everything, keep logs, write to file every so often'''
@@ -196,6 +214,20 @@ class userRoster:
     def roster(self, user):
         '''Keeps the roster, does things when called, never returns'''
         pass
+
+    def getSetting(self, nick, val):
+        nick = nick.strip()
+        if nick in self.settings:
+            return self.settings[nick][val]
+        else:
+            return False
+
+    def storeSetting(self, nick, val, msg):
+        if nick in self.settings:
+            self.settings[nick][val] = msg
+        else:
+            self.settings[nick] = {}
+            self.settings[nick][val] = msg
 
 class logging:
     """docstring for logging"""
