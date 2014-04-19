@@ -16,18 +16,11 @@ class client(irc.IRCClient):
     That does stuff...
     """
     def __init__(self, nick, **k):
+        '''Call the other functions we\'ll need to do stuff'''
         self.nick     = nick
         self.nickname = nick
         self.bot      = bot.worker(self.nick)
-
-    def actOnBot(self, do, target, params):
-        action = getattr(self, do, None)
-        try:
-            if action is not None:
-                action(target, params)
-        except:
-            print('Not implemented')
-            raise NotImplemented
+        # self.logger = bot.logger
 
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
@@ -37,55 +30,51 @@ class client(irc.IRCClient):
 
     def signedOn(self):
         """Called when bot has succesfully signed on to server."""
+        self.channels = bot.channelPool()
         self.join(self.factory.channel)
-        print ('/joined '+self.factory.channel)
 
     def joined(self, channel):
         """This will get called when the bot joins the channel."""
-        pass
+        print ('/joined '+self.factory.channel)
+        self.channels.join(channel)
+
+    def left(self, channel):
+        """This will get called when the bot joins the channel."""
+        print ('/left '+self.factory.channel)
+        self.channels.part(channel)
 
     def privmsg(self, user, channel, msg):
         """This will get called when the bot receives a message."""
-        print('null', "user: %s channel: %s message: %s " % (user, channel, msg))
+        print("user: '%s' channel: '%s' message: '%s' " % (user, channel, msg))
+
+        self.bot.msgin(user, channel, msg)
 
         if channel == self.nick:
-            origin = user.split('!',1)[0]
-            pvtmsg =1
+            suser = user.split('!',1)[0]
         else:
-            origin = channel
-            pvtmsg =0
+            suser = channel
 
-        if self.bot.owner(user) and msg == '!reload':
-            print('Trying to reload')
-            self.msg(origin, 'attempting reload...')
-            reload(bot)
-            self.msg(origin, 'reload complete!')
-            self.bot = bot.worker(self.nick)
-            self.msg(origin, 'handeler reloaded.')
-        elif msg == '!reload':
-            self.msg(origin, 'you\'re not my mommy...')
-
-        response = False
-        if pvtmsg:
-            response = self.bot.privmsg(user, channel, msg)
-        else:
-            response = self.bot.channel(user, channel, msg)
-
-        if response and isinstance(response, tuple):
-            print(response)
-            if isinstance(response[0], tuple):
-                if not isinstance(response[0][0],str):
-                    raise EnvironmentError('To many responses, from the irc bot.')
-                    reactor.stop()
-                    sys.exit(99)
-                else:
-                    for action in response:
-                        do, target, params = action
-                        self.actOnBot(do, target, params)
+        if msg == '!restart':
+            if self.bot.auth.owner(user):
+                print('Trying to restart')
+                self.msg(suser, 'attempting reload bot...')
+                reload(bot)
+                self.bot.wisper(suser, 'reload complete!')
+                self.bot = bot.worker(self.nick)
+                self.bot.wisper(suser, 'handeler reset.')
             else:
-                do, target, params = response
-                self.actOnBot(do, target, params)
+                self.msg(suser, 'you\'re not my mommy...')
 
+        jobs = self.bot.queue()
+        for job in jobs:
+            do, target, params = job
+            action = getattr(self, do, None)
+            try:
+                if action is not None:
+                    action(target, params)
+            except:
+                print('Not implemented' + do)
+                raise NotImplemented
 
     def action(self, user, channel, msg):
         """This will get called when the bot sees someone do an action."""
