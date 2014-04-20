@@ -1,20 +1,21 @@
 #!/usr/bin/python
 ## called from client server to process commands.
 from actions import security
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 import sys, time, re, random
 
 authentication = security.authentication
 
 class worker():
-    """
-    This does all our work for us.
-    """
-
+    """This does all our work for us."""
     def __init__(self, nick):
         self.nick        = nick
         self.auth        = authentication()
-        self.cmd         = "!"
+        self.cmdprefix   = "!"
         self._queue      = ()
         self.channelPool = channelPool()
         self.roster      = userRoster()
@@ -27,8 +28,20 @@ class worker():
             self._queue = ()
             return out
 
-    def reload(self, target):
-        pass
+    def save(self):
+        with open('./session.pk1', 'wb') as f:
+            pickle.dump(self.auth, f)
+            pickle.dump(self.channelPool, f)
+            pickle.dump(self.roster, f)
+            f.flush()
+        return True
+
+    def load(self):
+        with open('./session.pk1', 'rb') as f:
+            self.auth = pickle.load(f)
+            self.channelPool = pickle.load(f)
+            self.roster = pickle.load(f)
+        return True
 
     # TODO roll into one command
     def msgin(self, user, channel, msg):
@@ -37,7 +50,7 @@ class worker():
         else:
             to = channel
 
-        if msg.startswith("!"):
+        if msg.startswith(self.cmdprefix):
             arg = msg.split(' ',1)
             command = arg[0]
             if len(arg) > 1:
@@ -75,7 +88,9 @@ class worker():
 
         if command == '!set':
             self.putSetting(to, arg)
-
+        if command == '!save':
+            self.save()
+            self.speak(to, 'saved')
 
         # Join command
         if command == '!join':

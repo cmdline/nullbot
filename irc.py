@@ -47,6 +47,19 @@ class client(irc.IRCClient):
         """This will get called when the bot receives a message."""
         print("user: '%s' channel: '%s' message: '%s' " % (user, channel, msg))
 
+        def restart():
+            print('Trying to restart')
+            self.msg(suser, 'attempting reload bot...')
+            self.bot.wisper(suser, 'storeing session...')
+            self.bot.save()
+            reload(bot)
+            self.msg(suser, 'reload complete!')
+            self.bot = bot.worker(self.nick)
+            self.bot.wisper(suser, 'handeler reset...')
+            self.bot.wisper(suser, 'loading session...')
+            self.bot.load()
+            self.bot.wisper(suser, 'session loaded...')
+
         self.bot.msgin(user, channel, msg)
 
         if channel == self.nick:
@@ -57,19 +70,10 @@ class client(irc.IRCClient):
             pvmsg = False
 
         if msg == "!backdoor" and pvmsg:
-            self.msg(suser, 'attempting reload bot...')
-            reload(bot)
-            self.msg(suser, 'reload complete!')
-            self.bot = bot.worker(self.nick)
-            self.bot.wisper(suser, 'handeler reset.')
+            restart()
         if msg == '!restart':
             if self.bot.auth.owner(user):
-                print('Trying to restart')
-                self.msg(suser, 'attempting reload bot...')
-                reload(bot)
-                self.msg(suser, 'reload complete!')
-                self.bot = bot.worker(self.nick)
-                self.bot.wisper(suser, 'handeler reset.')
+                restart()
             else:
                 self.msg(suser, 'you\'re not my mommy...')
 
