@@ -1,12 +1,13 @@
 #!/usr/bin/python
 ## called from client server to process commands.
-from actions import security
-try:
-    import cPickle as pickle
-except:
-    import pickle
 
+#local
+from actions import security
+
+#system
 import sys, time, re, random
+import urllib as urll
+import cPickle as pickle
 
 authentication = security.authentication
 
@@ -19,6 +20,7 @@ class worker():
         self._queue      = ()
         self.channelPool = channelPool()
         self.roster      = userRoster()
+        self.pdata       = pdata()
 
     def queue(self, fx=None):
         if fx:
@@ -109,6 +111,7 @@ class worker():
         return False
 
     def act(self, user, msg, channel, to):
+        username = user.split('!',1)[0]
         # Otherwise check to see if it is a message directed at me
         if msg.startswith(self.nick + ":"):
             self.speak(channel, user.split('!',1)[0] + ': I am a bot')
@@ -117,15 +120,18 @@ class worker():
             '|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel'+\
             '|travel|xxx|us|io|uk|ko)(:[0-9]{0,5})?)(/\S*)?)'
 
-        urls = re.findall(urlregex, msg)
-        if urls:
-            print('uri detected')
-            for domain in urls:
-                wiki = re.findall('wikipedia\.org/wiki/([A-Za-z0-9_]+)',
-                    str(domain))
-                if wiki:
-
-                    print('yeah, it\'s a wiki... I should do something here.')
+        msgs = msg.split()
+        for m in msgs:
+            urls = re.search(urlregex, m)
+            if urls:
+                print('uri detected, you still need to book mark these!')
+                title = self.pdata.httpTitle(urls.group())
+                self.speak(to, username + ": " + title)
+                # for domain in urls:
+                #     wiki = re.findall('wikipedia\.org/wiki/([A-Za-z0-9_]+)',
+                #         str(domain))
+                #     if wiki:
+                #         print('yeah, it\'s a wiki... I should do something here.')
 
     def partChannel(self, channel, reason=None):
         print('Parting: '+ channel)
@@ -287,3 +293,17 @@ class logging:
     """docstring for logging"""
     def __init__(self):
         pass
+
+class pdata:
+    """pull data from other things"""
+    def __init__(self):
+        pass
+
+    def httpRequest(self, uri):
+        page = urll.urlopen(uri)
+        return page.read()
+
+    def httpTitle(self, uri):
+        data = self.httpRequest(uri)
+        a = re.search(r'<title>(.+)</title>', data, re.I)
+        return a.group(1).strip()
