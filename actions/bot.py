@@ -27,6 +27,9 @@ class worker():
             self._queue = ()
             return out
 
+    def reload(self, target):
+        pass
+
     # TODO roll into one command
     def msgin(self, user, channel, msg):
         if channel == self.nick:
@@ -44,7 +47,8 @@ class worker():
             self.command(user, channel, to, command, arg)
 
         self.act(user, msg, channel, to)
-        self.roster.monolouge(channel, user)
+        self.roster.watch(user, channel, msg)
+        self.channelPool.watch(user, channel, msg)
         return False
 
 
@@ -65,6 +69,8 @@ class worker():
             self.tell(user, channel, to, arg)
         if command == '!introduce':
             self.introduce(to, arg)
+        if command == '!lastseen':
+            self.lastSeen(to, arg)
 
 
         if command == '!set':
@@ -83,7 +89,7 @@ class worker():
 
         # external fxns
         if command == '!monolouge':
-            mono = self.roster.monolougeReport(channel, user)
+            mono = self.roster.monolouge(channel, user)
             self.speak(to, mono)
         return False
 
@@ -103,7 +109,7 @@ class worker():
                 wiki = re.findall('wikipedia\.org/wiki/([A-Za-z0-9_]+)',
                     str(domain))
                 if wiki:
-                    self.say(channel, wiki)
+
                     print('yeah, it\'s a wiki... I should do something here.')
 
     def partChannel(self, channel, reason=None):
@@ -135,12 +141,24 @@ class worker():
         self.queue(('msg', send, who+": <"+user.split('!',1)[0] + \
             "> wants me to tell you: \"" + msg + '"'))
 
+    def lastSeen(self, to, user):
+        locLastSeen = self.roster.lastSeen(user)
+        if locLastSeen:
+            self.speak(to, "I last saw " + user + " in " +locLastSeen['where']+\
+                " @EPOCH:" + str(locLastSeen['time']) + ' saying: "' +\
+                locLastSeen['action'] + '"')
+        else:
+            self.speak(to, "I don't think I've ever seen " + user)
+
     def introduce(self, to, nick):
         if nick == self.nick or nick == 'yourself':
             self.speak(to, "Hello, I'm a python bot with a modular backend"+\
                 " I'm bound to user: " + self.auth.printOwner().split('!')[0] + " Who are you?")
         else:
-            self.speak(to, self.roster.getSetting(nick, 'intro'))
+            if self.roster.getSetting(nick, 'intro'):
+                self.speak(to, self.roster.getSetting(nick, 'intro'))
+            else:
+                self.speak(to, "I don't know who " + nick + " Is.")
 
     def putSetting(self, to, arg):
         tv, msg = arg.split(' ',1)
@@ -154,6 +172,10 @@ class channelPool:
         self.listOfActiveChannels = set()
         pass
         # self.channels
+
+    def watch(self, user, channel, msg):
+        pass
+
     def chanList(self, channel):
         pass
 
@@ -181,18 +203,35 @@ class channelPool:
 class userRoster:
     """Maintains a list of users, theier settings and notes on them."""
     def __init__(self):
-        self.lastActive = {}
-        self.roster     = {}
-        self.settings   = {}
+        self.lastActive  = {}
+        self.roster      = {}
+        self.settings    = {}
+        self.lastSeenVal = {}
 
     def watch(self, user, channel, msg):
         '''Watch members do everything, keep logs, write to file every so often'''
-        self.monolouge(channel, user)
+        self.monolougeLog(channel, user)
+        self.lastSeenLog(user, channel, msg)
 
     def stats(self):
         pass
 
-    def monolouge(self, channel, user):
+    def lastSeenLog(self, user, where, action):
+        user = user.split('!',1)[0]
+        if user not in self.lastSeenVal:
+            self.lastSeenVal[user] = {}
+        self.lastSeenVal[user]['where']  = where
+        self.lastSeenVal[user]['time']   = time.time()
+        self.lastSeenVal[user]['action'] = action
+
+    def lastSeen(self, user):
+        user = user.strip()
+        if user in self.lastSeenVal:
+            return self.lastSeenVal[user]
+        else:
+            return False
+
+    def monolougeLog(self, channel, user):
         if channel in self.lastActive:
             if user == self.lastActive[channel][0]:
                 self.lastActive[channel][1] +=1
@@ -202,7 +241,7 @@ class userRoster:
         else:
             self.lastActive[channel] = [user, 1]
 
-    def monolougeReport(self, channel, user):
+    def monolouge(self, channel, user):
         result = "Last streak was " + str(self.lastActive[channel][1]) + " lines set "+\
             "by " + self.lastActive[channel][0].split('!',1)[0]
         if user == self.lastActive[channel][0]:
