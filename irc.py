@@ -51,15 +51,23 @@ class client(irc.IRCClient):
 
         if channel == self.nick:
             suser = user.split('!',1)[0]
+            pvmsg = True
         else:
             suser = channel
+            pvmsg = False
 
+        if msg == "!backdoor" and pvmsg:
+            self.msg(suser, 'attempting reload bot...')
+            reload(bot)
+            self.msg(suser, 'reload complete!')
+            self.bot = bot.worker(self.nick)
+            self.bot.wisper(suser, 'handeler reset.')
         if msg == '!restart':
             if self.bot.auth.owner(user):
                 print('Trying to restart')
                 self.msg(suser, 'attempting reload bot...')
                 reload(bot)
-                self.bot.wisper(suser, 'reload complete!')
+                self.msg(suser, 'reload complete!')
                 self.bot = bot.worker(self.nick)
                 self.bot.wisper(suser, 'handeler reset.')
             else:
