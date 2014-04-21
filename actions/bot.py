@@ -98,21 +98,22 @@ class worker:
             self.lastSeen(to, arg)
 
 
+        # bot jobs
         if command == '!set':
             self.putSetting(to, arg)
         if command == '!save':
             self.save()
             self.speak(to, 'saved')
-
-        # Join command
         if command == '!join':
             self.joinChannel(arg)
-        # Part command
         if command == '!part' and channel != "#cmdline":
             self.partChannel(channel, user + " made me do it!")
 
-        if command == '!quit' and self.auth.owner(user):
-            self.quit(target, 'Quitting as ordered!')
+        if command.startswith('!!') and self.auth.owner(user):
+            if command == '!!quit':
+                self.quit(target, 'Quitting as ordered!')
+            if command == '!!reloadall':
+                self.reloadModules();
 
         # external fxns
         if command == '!monolouge':
@@ -163,7 +164,7 @@ class worker:
         self.queue(('notice', target, msg))
 
     def tell(self, user, channel, send, msg):
-        '''
+        '''TODO
         feature light for now, but should track down this user and tell
         them publicly, for now it will address the user in the from channel
         '''
