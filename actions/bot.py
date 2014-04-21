@@ -159,10 +159,17 @@ class worker:
             self.queue(('leave', channel, reason))
         else:
             self.queue(('leave', channel))
+        # self.auth.tellOwner('ordered to part '+channel)
 
     def joinChannel(self, channel, key=None):
         print('Joining: '+ channel)
         self.queue(('join', channel, key))
+
+    def changeNick(self):
+        pass
+
+    def kickUser(self):
+        pass
 
     def speak(self, target, msg):
         self.queue(('msg', target, msg))
@@ -216,20 +223,17 @@ class channelPool:
     def watch(self, user, channel, msg):
         pass
 
-    def chanList(self, channel):
-        pass
+    def listActive(self):
+        return self.listOfActiveChannels
 
     def join(self, channel):
-        if channel in self.listOfActiveChannels:
-            pass
-        else:
-            self.listOfActiveChannels.add(channel)
+        self.listOfActiveChannels.add(channel)
         self.listOfChannels.add(channel)
 
     def part(self, channel):
         if channel in self.listOfActiveChannels:
             self.listOfActiveChannels.discard(channel)
-        pass
+        
 
     def nickChange():
         pass
@@ -319,12 +323,14 @@ class pdata:
         pass
 
     def httpRequest(self, uri):
+        if not uri.lower().startswith('http'):
+            uri = 'http://'+uri
         page = urll.urlopen(uri)
         return page.read()
 
     def httpTitle(self, uri):
-        data = self.httpRequest(uri)
-        a = re.search(r'<title>(.+)</title>', data, re.I)
+        pagedata = self.httpRequest(uri)
+        a = re.search(r'<title>(.+)</title>', pagedata, re.I)
         return a.group(1).strip()
 
     def wiki(self, topic):
@@ -348,5 +354,3 @@ class pdata:
         else:
             return 'bad data'
         return False
-
-
