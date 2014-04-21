@@ -11,7 +11,7 @@ import cPickle as pickle
 
 authentication = security.authentication
 
-class worker():
+class worker:
     """This does all our work for us."""
     def __init__(self, nick):
         self.nick        = nick
@@ -45,6 +45,17 @@ class worker():
             self.roster = pickle.load(f)
         return True
 
+    def panic(self, msg):
+        pass
+
+    def reloadModules(self):
+        try:
+            reload(security)
+        except:
+            self.panic('!PANIC! reloadModules')
+            sys.exit(55)
+        pass
+
     # TODO roll into one command
     def msgin(self, user, channel, msg):
         if channel == self.nick:
@@ -66,7 +77,6 @@ class worker():
         self.channelPool.watch(user, channel, msg)
         return False
 
-
     def command(self, user, channel, to, command, arg):
         # Quick ping check
         print('null', "user: %s channel: %s to: %s command: %s arg: %s " % (user, channel, to, command, arg))
@@ -79,7 +89,7 @@ class worker():
             else:
                 self.speak(channel, "You're not my mommy!")
 
-
+        # channel/server jobs
         if command == '!tell':
             self.tell(user, channel, to, arg)
         if command == '!introduce':
