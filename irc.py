@@ -7,7 +7,7 @@ from twisted.python import log
 import time, sys
 
 # Local imports
-from actions import config, bot
+from actions import config, bot, security
 
 class client(irc.IRCClient):
     """
@@ -60,8 +60,6 @@ class client(irc.IRCClient):
             self.bot.load()
             self.bot.wisper(suser, 'session loaded...')
 
-        self.bot.msgin(user, channel, msg)
-
         if channel == self.nick:
             suser = user.split('!',1)[0]
             pvmsg = True
@@ -71,11 +69,14 @@ class client(irc.IRCClient):
 
         if msg == "!backdoor" and pvmsg:
             restart()
-        if msg == '!restart':
+        elif msg == '!restart':
             if self.bot.auth.owner(user):
                 restart()
             else:
                 self.msg(suser, 'you\'re not my mommy...')
+        else:
+            self.bot.msgin(user, channel, msg)
+
 
         jobs = self.bot.queue()
         for job in jobs:
@@ -85,8 +86,12 @@ class client(irc.IRCClient):
                 if action is not None:
                     action(target, params)
             except:
-                print('Not implemented' + do)
-                raise NotImplemented
+                print action
+                print target
+                print params
+            
+                print('!!!!!Not implemented: ' + do + ' !!!!!')
+
 
     def action(self, user, channel, msg):
         """This will get called when the bot sees someone do an action."""
