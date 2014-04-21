@@ -97,6 +97,12 @@ class worker:
         if command == '!lastseen':
             self.lastSeen(to, arg)
 
+        # look up information 
+        if command == '!wiki':
+            print '"'+arg+'"'
+            self.speak(to, self.pdata.wiki(arg))
+        if command == '!google' or command == '!g':
+            pass
 
         # bot jobs
         if command == '!set':
@@ -127,22 +133,25 @@ class worker:
         if msg.startswith(self.nick + ":"):
             self.speak(channel, user.split('!',1)[0] + ': I am a bot')
 
-        urlregex ='((http[s]?://)?[A-Za-z0-9\-]+(\.(com|net|org|edu|gov|mil|aero'+\
-            '|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|tel'+\
-            '|travel|xxx|us|io|uk|ko)(:[0-9]{0,5})?)(/\S*)?)'
+        urlregex =r'((http[s]?://)?[A-Za-z0-9\-\.]+(\.(com|net|org|edu|gov|mil'+\
+            '|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|'+\
+            'tel|travel|xxx|us|io|uk|ko)(:[0-9]{0,5})?)(/\S*)?)'
 
         msgs = msg.split()
         for m in msgs:
             urls = re.search(urlregex, m)
             if urls:
                 print('uri detected, you still need to book mark these!')
-                title = self.pdata.httpTitle(urls.group())
-                self.speak(to, username + ": " + title)
-                # for domain in urls:
-                #     wiki = re.findall('wikipedia\.org/wiki/([A-Za-z0-9_]+)',
-                #         str(domain))
-                #     if wiki:
-                #         print('yeah, it\'s a wiki... I should do something here.')
+                wiki = re.findall('wikipedia\.org/wiki/([A-Za-z0-9_]+)', urls.group())
+                if wiki:
+                    wikisent = self.pdata.wiki(wiki[0])
+                    print wikisent
+                    self.speak(to, wikisent)
+                else:
+                    title = self.pdata.httpTitle(urls.group())
+                    if title:
+                        self.speak(to, title)
+
 
     def partChannel(self, channel, reason=None):
         print('Parting: '+ channel)
@@ -156,7 +165,6 @@ class worker:
         self.queue(('join', channel, key))
 
     def speak(self, target, msg):
-        print('Speaking: '+ msg)
         self.queue(('msg', target, msg))
 
     def wisper(self, target, msg):
@@ -318,3 +326,27 @@ class pdata:
         data = self.httpRequest(uri)
         a = re.search(r'<title>(.+)</title>', data, re.I)
         return a.group(1).strip()
+
+    def wiki(self, topic):
+        # compile the regex
+        whitespace    = re.compile(r'\s')
+        firstsentence = re.compile(r'<p>(.+?</b>.+?\.).+?</p>', flags=re.I)
+        htmltag       = re.compile(r'(<.+?>)', flags=re.I)
+        # strip the whitespace
+        topic = whitespace.sub('_', topic)
+        pagedata = self.httpRequest('https://en.wikipedia.com/wiki/'+topic)
+        if pagedata:
+            # pull the first sentence
+            desc = firstsentence.search(pagedata)
+            if desc:
+                # strip html tags
+                desc = desc.group(1)
+                return htmltag.sub('', desc)
+            else:
+                crurl = "https://en.wikipedia.org/w/index.php?title="+topic+"&action=edit"
+                return "Wikipedia doesn't have an entry for this. Would you like to create one? " + crurl
+        else:
+            return 'bad data'
+        return False
+
+
