@@ -21,6 +21,8 @@ class client(irc.IRCClient):
         self.nickname = nick
         self.bot      = bot.worker(self.nick)
         # self.logger = bot.logger
+        self.channels = bot.channelPool()
+
 
     def connectionMade(self):
         irc.IRCClient.connectionMade(self)
@@ -30,18 +32,17 @@ class client(irc.IRCClient):
 
     def signedOn(self):
         """Called when bot has succesfully signed on to server."""
-        self.channels = bot.channelPool()
         self.join(self.factory.channel)
 
     def joined(self, channel):
         """This will get called when the bot joins the channel."""
-        print ('/joined '+self.factory.channel)
-        self.channels.join(channel)
+        print ('/joined '+ channel)
+        self.bot.channelPool.joined(channel)
 
     def left(self, channel):
         """This will get called when the bot joins the channel."""
-        print ('/left '+self.factory.channel)
-        self.channels.part(channel)
+        print ('/left '+ channel)
+        self.bot.channelPool.parted(channel)
 
     def privmsg(self, user, channel, msg):
         """This will get called when the bot receives a message."""

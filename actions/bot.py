@@ -47,7 +47,8 @@ class worker:
         return True
 
     def panic(self, msg):
-        pass
+        print msg
+        sys.exit(9)
 
     def reloadModules(self):
         try:
@@ -55,7 +56,6 @@ class worker:
         except:
             self.panic('!PANIC! reloadModules')
             sys.exit(55)
-        pass
 
     # TODO roll into one command
     def msgin(self, user, channel, msg):
@@ -73,10 +73,15 @@ class worker:
                 arg = None
             self.command(user, channel, to, command, arg)
 
-        self.act(user, msg, channel, to)
         self.roster.watch(user, channel, msg)
         self.channelPool.watch(user, channel, msg)
-        return False
+
+        if self.channelPool.channel(channel, 'mute'):
+            self.autoAct(user, msg, channel, '')
+        else:
+            self.autoAct(user, msg, channel, to)
+
+        return True
 
     def command(self, user, channel, to, command, arg):
         # Quick ping check
@@ -86,9 +91,9 @@ class worker:
         # Take ownershp
         if command == '!owner':
             if self.auth.takeOwner(user, arg):
-                self.speak(channel, "Mommy")
+                self.wisper(channel, "Mommy")
             else:
-                self.speak(channel, "You're not my mommy!")
+                self.wisper(channel, "You're not my mommy!")
 
         # channel/server jobs
         if command == '!tell':
@@ -115,6 +120,10 @@ class worker:
             self.joinChannel(arg)
         if command == '!part' and channel != "#cmdline":
             self.partChannel(channel, user + " made me do it!")
+        if command == '!mute':
+            self.channelPool.setChannel(channel, 'mute', True)
+        if command == '!unmute':
+            self.channelPool.setChannel(channel, 'mute', False)
 
         if command.startswith('!!') and self.auth.owner(user):
             if command == '!!quit':
@@ -128,7 +137,7 @@ class worker:
             self.speak(to, mono)
         return False
 
-    def act(self, user, msg, channel, to):
+    def autoAct(self, user, msg, channel, to):
         username = user.split('!',1)[0]
         # Otherwise check to see if it is a message directed at me
         if msg.startswith(self.nick + ":"):
@@ -136,7 +145,7 @@ class worker:
 
         urlregex =r'((http[s]?://)?[A-Za-z0-9\-\.]+(\.(com|net|org|edu|gov|mil'+\
             '|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|'+\
-            'tel|travel|xxx|us|io|uk|ko)(:[0-9]{0,5})?)(/\S*)?)'
+            'tel|travel|xxx|us|io|uk|ko|fm)(:[0-9]{0,5})?)(/\S*)?)'
 
         msgs = msg.split()
         for m in msgs:
@@ -148,12 +157,14 @@ class worker:
                     wikisent = self.pdata.wiki(wiki[0])
                     self.speak(to, wikisent)
                 else:
+                    if not uri.lower().startswith('http'):
+                        uri = 'http://'+uri
                     title = self.pdata.httpTitle(uri)
                     if title:
                         self.speak(to, title)
-                        self.log.saveLink(uri, title)
+                        self.log.saveLink(uri, channel, title)
                     else:
-                        self.log.saveLink(uri)
+                        self.log.saveLink(uri, channel, uri)
 
 
     def partChannel(self, channel, reason=None):
@@ -218,22 +229,37 @@ class worker:
 class channelPool:
     """Maintail a list of active channel, and hold settings for them as well."""
     def __init__(self):
-        self.listOfChannels = set()
+        self.listOfChannels       = set()
         self.listOfActiveChannels = set()
+        self.channelSettings      = {}
         pass
         # self.channels
 
     def watch(self, user, channel, msg):
         pass
 
+    def channel(self, channel, settings):
+        '''retruns channel settings'''
+        if channel in self.channelSettings:
+            return self.channelSettings[channel][settings]
+        return None
+
+    def setChannel(self, channel, settings, value):
+        '''set a value for this channel'''
+        if channel in self.channelSettings:
+            self.channelSettings[channel][settings] = value
+        return None
+
     def listActive(self):
         return self.listOfActiveChannels
 
-    def join(self, channel):
+    def joined(self, channel):
         self.listOfActiveChannels.add(channel)
         self.listOfChannels.add(channel)
+        self.channelSettings[channel] = {}
+        self.channelSettings[channel]['mute'] = False
 
-    def part(self, channel):
+    def parted(self, channel):
         if channel in self.listOfActiveChannels:
             self.listOfActiveChannels.discard(channel)
     
@@ -323,10 +349,8 @@ class logging:
     def __init__(self):
         pass
 
-    def saveLink(self, uri, title=None):
-        if title is None:
-            title = uri
-        link = '<a href="'+uri+'">'+title+'</a><br />'+"\n"
+    def saveLink(self, uri, chan, title):
+        link = '<a href="'+uri+'">'+chan+': '+title+'</a><br />'+"\n"
         with open('./urilog.txt', 'r+') as f:
             content = f.read()
             f.seek(0)
@@ -347,7 +371,7 @@ class pdata:
 
     def httpTitle(self, uri):
         pagedata = self.httpRequest(uri)
-        a = re.search(r'<title>(.+)</title>', pagedata, re.I)
+        a = re.search(r'<title>(.+)</title>', pagedata, re.I + re.S)
         return a.group(1).strip()
 
     def wiki(self, topic):
