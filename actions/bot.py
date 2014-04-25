@@ -21,6 +21,7 @@ class worker:
         self.channelPool = channelPool()
         self.roster      = userRoster()
         self.pdata       = pdata()
+        self.log         = logging()
 
     def queue(self, fx=None):
         if fx:
@@ -141,16 +142,18 @@ class worker:
         for m in msgs:
             urls = re.search(urlregex, m)
             if urls:
-                print('uri detected, you still need to book mark these!')
-                wiki = re.findall('wikipedia\.org/wiki/([A-Za-z0-9_]+)', urls.group())
+                uri = urls.group()
+                wiki = re.findall('wikipedia\.org/wiki/([A-Za-z0-9_]+)', uri)
                 if wiki:
                     wikisent = self.pdata.wiki(wiki[0])
-                    print wikisent
                     self.speak(to, wikisent)
                 else:
-                    title = self.pdata.httpTitle(urls.group())
+                    title = self.pdata.httpTitle(uri)
                     if title:
                         self.speak(to, title)
+                        self.log.saveLink(uri, title)
+                    else:
+                        self.log.saveLink(uri)
 
 
     def partChannel(self, channel, reason=None):
@@ -233,7 +236,10 @@ class channelPool:
     def part(self, channel):
         if channel in self.listOfActiveChannels:
             self.listOfActiveChannels.discard(channel)
-        
+    
+    def lockChannel(self):
+        '''Lock channel so that user's can't force a /part'''
+        pass
 
     def nickChange():
         pass
@@ -316,6 +322,17 @@ class logging:
     """docstring for logging"""
     def __init__(self):
         pass
+
+    def saveLink(self, uri, title=None):
+        if title is None:
+            title = uri
+        link = '<a href="'+uri+'">'+title+'</a><br />'+"\n"
+        with open('./urilog.txt', 'r+') as f:
+            content = f.read()
+            f.seek(0)
+            f.write(link+content)
+            f.flush()
+        return True
 
 class pdata:
     """pull data from other things"""
