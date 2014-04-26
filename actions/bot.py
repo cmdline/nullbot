@@ -205,8 +205,9 @@ class worker:
     def lastSeen(self, to, user):
         locLastSeen = self.roster.lastSeen(user)
         if locLastSeen:
+            mins = (time.time() - locLastSeen['time']) / 60
             self.speak(to, "I last saw " + user + " in " +locLastSeen['where']+\
-                " @EPOCH:" + str(locLastSeen['time']) + ' saying: "' +\
+                " " + str(int(mins)) + 'minutes ago saying: "' +\
                 locLastSeen['action'] + '"')
         else:
             self.speak(to, "I don't think I've ever seen " + user)
