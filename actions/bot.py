@@ -167,9 +167,9 @@ class worker:
                     if title:
                         if speak:
                             self.speak(to, title)
-                        self.log.saveLink(uri, channel, title)
+                        self.log.saveLink(uri, channel, user, title)
                     else:
-                        self.log.saveLink(uri, channel, uri)
+                        self.log.saveLink(uri, channel, user, uri)
 
 
     def partChannel(self, channel, reason=None):
@@ -357,8 +357,9 @@ class logging:
     def __init__(self):
         pass
 
-    def saveLink(self, uri, chan, title):
-        link = '<a href="'+uri+'" target="_blank">'+chan+': '+title+'</a><br />'+"\n"
+    def saveLink(self, uri, chan, user, title):
+        link = '<a href="'+uri+'" target="_blank">'+chan+': ['+user+'] '+title+\
+            '</a><br />'+"\n"
         with open('./urilog.txt', 'r+') as f:
             content = f.read()
             f.seek(0)
