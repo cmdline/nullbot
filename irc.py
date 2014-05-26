@@ -87,9 +87,9 @@ class client(irc.IRCClient):
                 if action is not None:
                     action(target, params)
             except:
-                print action
-                print target
-                print params
+                print(action)
+                print(target)
+                print(params)
             
                 print('!!!!!Not implemented: ' + do + ' !!!!!')
 
