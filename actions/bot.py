@@ -214,7 +214,7 @@ class worker:
         if locLastSeen:
             mins = (time.time() - locLastSeen['time']) / 60
             self.speak(to, "I last saw " + user + " in " +locLastSeen['where']+\
-                " " + str(int(mins)) + 'minutes ago saying: "' +\
+                " " + str(int(mins)) + ' minutes ago saying: "' +\
                 locLastSeen['action'] + '"')
         else:
             self.speak(to, "I don't think I've ever seen " + user)
@@ -358,7 +358,7 @@ class logging:
         pass
 
     def saveLink(self, uri, chan, title):
-        link = '<a href="'+uri+'">'+chan+': '+title+'</a><br />'+"\n"
+        link = '<a href="'+uri+'" target="_blank">'+chan+': '+title+'</a><br />'+"\n"
         with open('./urilog.txt', 'r+') as f:
             content = f.read()
             f.seek(0)
@@ -380,7 +380,10 @@ class pdata:
     def httpTitle(self, uri):
         pagedata = self.httpRequest(uri)
         a = re.search(r'<title>(.+)</title>', pagedata, re.I + re.S)
-        return a.group(1).strip()
+        try:
+            return a.group(1).strip()
+        except:
+            return False
 
     def wiki(self, topic):
         # compile the regex
