@@ -77,7 +77,7 @@ class worker:
         self.channelPool.watch(user, channel, msg)
 
         if self.channelPool.channel(channel, 'mute'):
-            self.autoAct(user, msg, channel, '')
+            self.autoAct(user, msg, channel, '!!DEL!!')
         else:
             self.autoAct(user, msg, channel, to)
 
@@ -140,12 +140,15 @@ class worker:
     def autoAct(self, user, msg, channel, to):
         username = user.split('!',1)[0]
         # Otherwise check to see if it is a message directed at me
-        if msg.startswith(self.nick + ":"):
-            self.speak(channel, user.split('!',1)[0] + ': I am a bot')
 
         urlregex =r'((http[s]?://)?[A-Za-z0-9\-\.]+(\.(com|net|org|edu|gov|mil'+\
             '|aero|asia|biz|cat|coop|info|int|jobs|mobi|museum|name|post|pro|'+\
             'tel|travel|xxx|us|io|uk|ko|fm)(:[0-9]{0,5})?)(/\S*)?)'
+
+        if to == '':
+            speak = False
+        else: 
+            speak = True
 
         msgs = msg.split()
         for m in msgs:
@@ -155,13 +158,15 @@ class worker:
                 wiki = re.findall('wikipedia\.org/wiki/([A-Za-z0-9_]+)', uri)
                 if wiki:
                     wikisent = self.pdata.wiki(wiki[0])
-                    self.speak(to, wikisent)
+                    if speak:
+                        self.speak(to, wikisent)
                 else:
                     if not uri.lower().startswith('http'):
                         uri = 'http://'+uri
                     title = self.pdata.httpTitle(uri)
                     if title:
-                        self.speak(to, title)
+                        if speak:
+                            self.speak(to, title)
                         self.log.saveLink(uri, channel, title)
                     else:
                         self.log.saveLink(uri, channel, uri)
@@ -186,11 +191,13 @@ class worker:
         pass
 
     def speak(self, target, msg):
-        self.queue(('msg', target, msg))
+        if target != "!!DEL!!":
+            self.queue(('msg', target, msg))
 
     def wisper(self, target, msg):
-        print('Speaking: '+ msg)
-        self.queue(('notice', target, msg))
+        if target != "!!DEL!!":
+            print('Speaking: '+ msg)
+            self.queue(('notice', target, msg))
 
     def tell(self, user, channel, send, msg):
         '''TODO
@@ -258,7 +265,7 @@ class channelPool:
         self.listOfActiveChannels.add(channel)
         self.listOfChannels.add(channel)
         self.channelSettings[channel] = {}
-        self.channelSettings[channel]['mute'] = False
+        self.channelSettings[channel]['mute'] = True
 
     def parted(self, channel):
         if channel in self.listOfActiveChannels:
