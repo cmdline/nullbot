@@ -167,9 +167,9 @@ class worker:
                     if title:
                         if speak:
                             self.speak(to, title)
-                        self.log.saveLink(uri, channel, user, title)
+                        self.log.saveLink(uri, channel, username, title)
                     else:
-                        self.log.saveLink(uri, channel, user, uri)
+                        self.log.saveLink(uri, channel, username, uri)
 
 
     def partChannel(self, channel, reason=None):
@@ -358,12 +358,25 @@ class logging:
         pass
 
     def saveLink(self, uri, chan, user, title):
-        link = '<a href="'+uri+'" target="_blank">'+chan+': ['+user+'] '+title+\
-            '</a><br />'+"\n"
+        link = '<li><a href="'+uri+'" target="_blank">'+chan+': ['+user+'] '+\
+            title+'</a></li>'+"\n"
         with open('./urilog.txt', 'r+') as f:
             content = f.read()
             f.seek(0)
-            f.write(link+content)
+            f.write('<head><meta http-equiv="refresh" content="10"/></head>\n')
+            f.write('<body><ol>\n')
+            f.write(link)
+            content = content.split('\n')
+            line_number = 0
+            for line in content:
+                if line_number is 0:
+                    line_number += 1
+                elif line_number < 50:
+                    f.write(line+'\n')
+                    line_number += 1
+                else:
+                    f.truncate()
+            f.write('</ol></body>\n')
             f.flush()
         return True
 
